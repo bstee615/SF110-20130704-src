@@ -1,4 +1,6 @@
 """
+DEPRECATED; use add_separate_jdwp_options.py instead.
+
 This script adds an option ${traced.wait}, which causes Ant-JUnit to wait for a debugger before executing tests.
 By default, the option is "false", so the build.xml behaves like the original.
 The option can be activated like so:
