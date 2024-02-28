@@ -3,8 +3,8 @@
 
 while read line
 do
-    project="$(echo $line | cut -d' ' -f1)"
-    class="$(echo $line | cut -d' ' -f2)"
+    project="$(echo $line | awk -F '[ \t]+' '{print $1}')"
+    class="$(echo $line | awk -F '[ \t]+' '{print $2}')"
     class="$(echo $class | sed 's@\.@/@g')" # Convert class name to class filepath
     bash $(dirname $0)/pair_run_class.sh "$project" "$class"
 done < classes.txt
