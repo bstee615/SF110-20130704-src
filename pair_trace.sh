@@ -1,5 +1,4 @@
 #!/bin/bash
-
-script="$(dirname $0)/tools/trace_collection_java/trace"
+script="workspace/tools/trace-modeling-tracers/trace_collection_java/trace $1 $2"
 
 bash $script

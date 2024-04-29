@@ -124,13 +124,13 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_generation_timeout", type=int, default=60*2,
                         help="Maximum number of seconds to allow EvoSuite for test generation.")
-    parser.add_argument("--test_run_timeout", type=int, default=60*2,
-                        help="Maximum number of seconds to allow EvoSuite for test execution.")
+    #parser.add_argument("--test_run_timeout", type=int, default=60*2,
+    #                    help="Maximum number of seconds to allow EvoSuite for test execution.")
     parser.add_argument("--max_projects", type=int,
                         help="Maximum number of projects to process (sorted by ID ascending)")
     parser.add_argument("--max_classes_per_project", type=int,
                         help="Maximum number of classes to generate tests for per project (sorted lexicographically)")
-    parser.add_argument("--nproc", type=int, default=2,
+    parser.add_argument("--nproc", type=int, default=4,
                         help="Number of processes to run in parallel")
     STEPS = ["clean", "project-compile", "evosuite-generate", "evosuite-compile", "evosuite-test"]
     SIMPLE_STEPS = ["clean", "evosuite-generate", "evosuite-compile"]
