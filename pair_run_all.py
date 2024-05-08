@@ -61,7 +61,7 @@ async def proc_one(args):
     args['output'][args['line']] = await run_command_async(command)
     return args["output"][args['line']]
 
-async def run_batch_async(n_proc:int, output_location, foo, args:[]):
+async def run_batch_async(n_proc:int, output_location, foo, args:[], timeout_s:int = 60 * 5):
     tasks = []
     start = 0
     end = len(args)
@@ -69,27 +69,46 @@ async def run_batch_async(n_proc:int, output_location, foo, args:[]):
             tasks.append(asyncio.create_task(foo(args[start])))
             start += 1
     while len(tasks) > 0:
-        done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        for future in done:
-            output = await future
-            tasks.remove(future)
-            if start < end:
-                tasks.append(asyncio.create_task(foo(args[start])))
-                start += 1
-            print(json.dumps(output), file=output_location, flush=True)
+        try:
+            # Wait for any task to complete or for a timeout
+            done, pending = await asyncio.wait_for(
+                asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED),
+                timeout_s
+            )
+            for future in done:
+                output = await future
+                tasks.remove(future)
+                if start < end:
+                    tasks.append(asyncio.create_task(foo(args[start])))
+                    start += 1
+                print(json.dumps(output), file=output_location, flush=True)
+        except asyncio.TimeoutError:
+            if len(tasks) > 0:
+                tasks[0].cancel()  # Cancel the first task (which is hopefully the oldest)
+                try:
+                    await tasks[0]  # Wait for the task to handle its cancellation
+                except asyncio.CancelledError:
+                    print("Cancelled the oldest ongoing task due to timeout.")
+                tasks.pop(0)
+            continue  
+
+        #done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 async def main():
     parser = argparse.ArgumentParser()    
     parser.add_argument("--n_proc", type=int, default=10,
+                        help="Number of processes to run in parallel")
+    parser.add_argument("--timeout_m", type=int, default=3,
                         help="Number of processes to run in parallel")
     parser.add_argument("--class_list", default="classes_test.txt",
                             help="File with locations of projects, and class names to test as pairs on each line")
     cli_args = parser.parse_args()
     args = []
     output = {}
+    timeout_s = round(cli_args.timeout_m * 60)
     with open(cli_args.class_list, 'r') as classes:
         for line in classes:
             args.append({"line":line, "output":output})
-    await run_batch_async(cli_args.n_proc, sys.stdout, proc_one, args)
+    await run_batch_async(cli_args.n_proc, sys.stdout, proc_one, args, timeout_s)
 
 
 if __name__ == "__main__":
