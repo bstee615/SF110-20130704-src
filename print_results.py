@@ -13,6 +13,7 @@ def report_results(results_fpath):
         # project-level
         "error": 0,
         "other": 0,
+        "preparation": 0,
         "couldnt-parse": 0,
         "run": 0,
         # test-level
@@ -46,6 +47,8 @@ def report_results(results_fpath):
                     counts["test_errors"].append(tests_errored)
                 except Exception:
                     counts["couldnt-parse"] += 1
+            elif "evosuite-generate" in data or "evosuite-compile" in data:
+                counts["preparation"] += 1
             else:
                 counts["other"] += 1
 
@@ -56,7 +59,7 @@ def report_results(results_fpath):
         for k in counts:
             if k.startswith("test"):
                 counts[k] = round(np.average(counts[k]), 1)
-        print()
+        
         print("Test outcomes (mean):")
         print("\n".join(f"{k} = {v}" for k, v in counts.items() if k.startswith("test")))
 

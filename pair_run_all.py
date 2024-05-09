@@ -61,36 +61,31 @@ async def proc_one(args):
     args['output'][args['line']] = await run_command_async(command)
     return args["output"][args['line']]
 
+async def run_with_timeout(task_func, arg, timeout_s):
+    try:
+        return await asyncio.wait_for(task_func(arg), timeout_s)
+    except asyncio.TimeoutError:
+        raise Exception(f"Task with argument {arg} timed out.")
+
 async def run_batch_async(n_proc:int, output_location, foo, args:[], timeout_s:int = 60 * 5):
     tasks = []
     start = 0
     end = len(args)
     while len(tasks) < n_proc and start < end:
-            tasks.append(asyncio.create_task(foo(args[start])))
-            start += 1
+        tasks.append(asyncio.create_task(run_with_timeout(foo, args[start], timeout_s)))
+        start += 1
     while len(tasks) > 0:
-        try:
-            # Wait for any task to complete or for a timeout
-            done, pending = await asyncio.wait_for(
-                asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED),
-                timeout_s
-            )
-            for future in done:
+        done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        for future in done:
+            try:
                 output = await future
-                tasks.remove(future)
-                if start < end:
-                    tasks.append(asyncio.create_task(foo(args[start])))
-                    start += 1
                 print(json.dumps(output), file=output_location, flush=True)
-        except asyncio.TimeoutError:
-            if len(tasks) > 0:
-                tasks[0].cancel()  # Cancel the first task (which is hopefully the oldest)
-                try:
-                    await tasks[0]  # Wait for the task to handle its cancellation
-                except asyncio.CancelledError:
-                    print("Cancelled the oldest ongoing task due to timeout.")
-                tasks.pop(0)
-            continue  
+            except Exception as e:
+                print(f"Task failed or was cancelled: {str(e)}")
+            tasks.remove(future)
+            if start < end:
+                tasks.append(asyncio.create_task(run_with_timeout(foo, args[start], timeout_s)))
+                start += 1
 
         #done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 async def main():
@@ -105,6 +100,7 @@ async def main():
     args = []
     output = {}
     timeout_s = round(cli_args.timeout_m * 60)
+    print("timeout in seconds:", timeout_s)
     with open(cli_args.class_list, 'r') as classes:
         for line in classes:
             args.append({"line":line, "output":output})

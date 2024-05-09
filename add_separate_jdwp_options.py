@@ -12,8 +12,8 @@ from pathlib import Path
 from copy import deepcopy
 
 build_xmls = list(Path(".").glob("*_*/build.xml"))
-build_xmls = [x for x in build_xmls if x.parent.name.startswith("1_")] # DEBUG
-
+#build_xmls = [x for x in build_xmls if x.parent.name.startswith("100_")] # DEBUG
+print(build_xmls)
 count = 0
 for xml in build_xmls:
     # Load the XML file

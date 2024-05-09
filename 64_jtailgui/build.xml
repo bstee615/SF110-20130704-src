@@ -1,6 +1,8 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<project name="jtailgui" default="compile" basedir=".">
+<?xml version="1.0" ?><project name="jtailgui" default="compile" basedir=".">
 
+  <!-- Properties for trace modeling -->
+  <property name="traced.classname" value="false"/>
+  
   <!-- The directories for compilation targets -->
   <property name="build.home" value="build"/>
   <property name="build.classes" value="${build.home}/classes"/>
@@ -146,6 +148,28 @@
            <fileset dir="${evosuite.java}">
              <include name="**/*.java"/>
            <exclude name="**/*_scaffolding.java"/></fileset>
+        </batchtest>
+     </junit>
+  </target> 
+  
+  <target name="evosuite-trace" depends="compile-tests" description="Run EvoSuite generated tests and wait for tracer to attach">
+     <junit printsummary="yes" haltonfailure="no" fork="yes" showoutput="yes">
+        <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8787,timeout=60000,server=y,suspend=y"/>
+        <jvmarg value="-Djava.compiler=NONE"/>
+        <jvmarg value="-Xnoagent"/>
+        <jvmarg value="-Xdebug"/>
+        <formatter type="plain" usefile="false"/>
+        <classpath>
+           <pathelement path="${build.classes}"/>
+           <pathelement path="${build.evosuite}"/>
+           <path refid="source.lib"/>
+           <path refid="test.lib"/>
+        <path refid="evosuite.lib"/></classpath>
+        <batchtest fork="yes">
+           <fileset dir="${evosuite.java}">
+             <include name="**/${traced.classname}_ESTest.java"/>
+             <exclude name="**/*_scaffolding.java"/>
+           </fileset>
         </batchtest>
      </junit>
   </target> 

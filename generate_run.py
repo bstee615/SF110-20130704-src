@@ -20,7 +20,7 @@ import os
 #Translates this project's steps to ant commands
 step_dict = {"evosuite-compile":["compile-evosuite"], "project-compile":["compile"]}
 #port to run debugger/tracer on
-tracer_port = Value(ctypes.c_int, 12500)  # Shared, synchronized integer
+tracer_port = Value(ctypes.c_int, 8787)  # Shared, synchronized integer
 build_dir = ""
 
 
@@ -30,6 +30,7 @@ async def process_one_project(t, args):
     output["program"] = program = group["program"].iloc[0]
     cwd = f"{build_dir}{program}"
     async def run_command_async(command, timeout = None):
+        print(f"running: {command}")
         proc = await asyncio.create_subprocess_shell(command, 
             shell=True, 
             cwd=cwd, 
@@ -55,6 +56,7 @@ async def process_one_project(t, args):
 
         # Ensure we capture the output
         stdout, stderr = await stdout_task, await stderr_task
+        print(f"finished running: {command}")
         return {
                 "command": command,
                 "stdout": stdout.decode('utf-8'),
@@ -161,7 +163,7 @@ async def main():
     parser.add_argument("--nproc", type=int, default=2,
                         help="Number of processes to run in parallel")
     STEPS = ["clean", "project-compile", "evosuite-generate", "evosuite-compile", "evosuite-test"]
-    SIMPLE_STEPS = ["clean", "evosuite-generate", "evosuite-compile", "evosuite-test"]
+    SIMPLE_STEPS = ["evosuite-compile", "evosuite-test"]
     JUST_TEST = ["evosuite-test"]
     parser.add_argument("--steps", type=str, nargs="+", default=SIMPLE_STEPS, choices=SIMPLE_STEPS,
                         help="Steps to run")
@@ -190,7 +192,7 @@ async def main():
         while len(tasks) < args.nproc and start < end:
             tasks.append(asyncio.create_task(process_one_project(groups[start], args)))
             start += 1
-        while start < end:
+        while len(tasks) > 0:
             done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             for future in done:
                 output = await future
